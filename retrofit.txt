@@ -1,0 +1,168 @@
+
+■gradle
+	compile 'com.android.support:appcompat-v7:22.2.0'
+	compile 'com.squareup.okhttp:okhttp:2.4.0'
+	compile 'com.squareup.retrofit:retrofit:1.9.0'
+	compile 'com.google.code.gson:gson:2.2.4'
+
+■rest
+
+
+import com.example.gotoh.myapplication.Const;
+
+import dto.TiketInfoResponseResults;
+import retrofit.http.Body;
+import retrofit.http.Headers;
+import retrofit.http.POST;
+import retrofit.mime.TypedString;
+import rx.Observable;
+
+■retrofit
+public class RestApi {
+
+	public static final String HTTP_HEADERS = "Content-Type:application/x-www-form-urlencoded";
+
+	/**
+	 * interface
+	 */
+	public interface XxxxxxxApi {
+		@Headers(HTTP_HEADERS)
+		@POST("/apiName/")
+		Observable<TiketInfoResponseResults> getXXXX(@Body TypedString map);
+	}
+}
+
+
+呼び出し側
+package com.example.gotoh.myapplication;
+
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import dto.TicketRequestDto;
+import dto.TiketInfoResponseResults;
+import rest.RestApi;
+import retrofit.RestAdapter;
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
+import utils.RetroFitUtils;
+
+public class MainActivity extends AppCompatActivity {
+
+	public XXXDto requestDto;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+
+
+		Map map = new HashMap();
+		map.put("key1","value1");
+		map.put("key2", "value2");
+
+		//Restrfit用アダプターの取得
+		RestAdapter adapter = RetroFitUtils.getRestAdapter("http://xxxx.com");
+
+		// 非同期処理の実行
+		adapter.create(RestApi.XxxxxxxApi.class).getXXXX(RetroFitUtils.map2QueryString(map))
+				.subscribeOn(Schedulers.newThread())
+				.observeOn(AndroidSchedulers.mainThread())
+				.subscribe(new Observer<ApiResultsDto>() {
+					@Override
+					public void onCompleted(){
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						//エラー時
+					}
+
+					@Override
+					public void onNext(TiketInfoResponseResults dto) {
+						//正常時
+					}
+				});
+
+	}
+
+}
+
+
+utils
+
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.internal.bind.DateTypeAdapter;
+
+import java.util.Date;
+import java.util.Map;
+
+import retrofit.RestAdapter;
+import retrofit.android.AndroidLog;
+import retrofit.converter.GsonConverter;
+import retrofit.mime.TypedString;
+
+/**
+ * Created by gotoh on 2015/10/29.
+ */
+public class RetroFitUtils {
+
+	private RetroFitUtils() {
+	}
+
+	/**
+	 * Post用のクエリーストリングを生成します
+	 *
+	 * @param map
+	 * @return
+	 */
+	public static TypedString map2QueryString(Map<String, String> map) {
+		StringBuffer queryString = new StringBuffer("");
+
+		for (Map.Entry<String, String> e : map.entrySet()) {
+
+			if (e.getValue() == null) {
+				continue;
+			}
+
+			if (!"".equals(queryString.toString())) {
+				queryString.append("&");
+			}
+			queryString.append(e.getKey()).append("=").append(e.getValue());
+		}
+
+		return new TypedString(queryString.toString());
+	}
+
+
+	/**
+	 * Retrofitで使用するアダプターを生成します
+	 *
+	 * @param serverUrl 接続先のServer　ドメイン
+	 * @return
+	 */
+	public static RestAdapter getRestAdapter(String serverUrl) {
+		// JSONのパーサー
+		Gson gson = new GsonBuilder()
+				.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+				.registerTypeAdapter(Date.class, new DateTypeAdapter())
+				.create();
+
+		// RestAdapterの生成
+		RestAdapter adapter = new RestAdapter.Builder()
+				.setEndpoint(serverUrl)
+				.setConverter(new GsonConverter(gson))
+				.setLogLevel(RestAdapter.LogLevel.FULL)
+				.setLog(new AndroidLog("=NETWORK="))
+				.build();
+
+		return adapter;
+	}
+
+}

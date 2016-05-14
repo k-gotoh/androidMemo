@@ -1,0 +1,27 @@
+■gradle
+ compile 'com.android.support:multidex:1.0.0'
+
+ buildToolは最新に
+ buildToolsVersion "21.1.1"
+
+ defaultConfig {
+    multiDexEnabled true
+ 
+ }
+
+
+ dexOptions {
+    preDexLibraries false
+    javaMaxHeapSize "2g" // ヒープの最大を 2GB にする
+ }
+
+■Application
+ public class MyApp extends Application {
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        MultiDex.install(this);
+    }
+ }
+
+http://qiita.com/KeithYokoma/items/579fb16bc6387e4f21d6
